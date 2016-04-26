@@ -35,7 +35,9 @@ class DBConn:
         try:
             self.cursor.execute(sql)
             rows = self.cursor.fetchall()
-            return rows
+  	    columns = [desc[0] for desc in self.cursor.description]
+
+            return columns, rows
         except pg.DatabaseError as err:
             print "Error: ", err
         

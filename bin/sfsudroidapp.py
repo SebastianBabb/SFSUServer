@@ -28,16 +28,15 @@ def  test():
 def departments():
     # Get db.
     db = DBConn()
-    # Query db for subjects.
-    rows = db.query("SELECT * FROM \"Department\"")
+    # Query db for departments - currently using the course_name col from the Courses table.
+    cols, rows = db.query("SELECT DISTINCT course_name FROM \"Courses\" ORDER By course_name ASC")
     # If records returned, split and jsonify.
     if(rows):
         # Split columns into tuples. 
-        id, dept, email, phone = zip(*rows)
-	# Return test data for allen...
-    	#return '"departments":[{"department":"Anthropology"}, {"department":"Biology"}, {"department":"Chemistry"}]'
+        #id, dept, email, phone = zip(*rows)
+	dept = zip(*rows)
     	return jsonify(departments=list(dept))
-    #else:
+    else:
         return "Oops"
 
 @app.route("/api/classes", methods=['GET', 'OPTIONS'])
@@ -46,11 +45,20 @@ def classes():
     dept = request.args.get('department')
     # Get db.
     db = DBConn()
-    # Query db for subjects.
+    # Query db for class record.
     # Note:  currently (4/21/16) no relation between Courses and Department tables.
-    #rows = db.query("SELECT * FROM \"Classes\" ")
+    cols, rows = db.query("SELECT DISTINCT course_name, course_number, course_description  FROM \"Courses\" WHERE course_name = '%s' ORDER BY course_number ASC" %dept);
 
-    return dept
+    if(rows):
+        dict_list = []
+
+	# Build a list of dictionaries.
+	for row in rows:
+	    dict_list.append(dict(zip(cols, row)))
+
+    	return jsonify(classes=dict_list)
+    else:
+        return "No such dept %s" %dept
 
 if __name__ == "__main__":
     import logging
