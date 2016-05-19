@@ -1,5 +1,11 @@
 #!/usr/bin/python2
 
+__author__ = "Sebastian Babb"
+__version__ = "1.0.0"
+__maintainer__ = "Sebastian Babb"
+__email__ = "sbabb@mail.sfsu.edu"
+__status__ = "Production"
+
 import configparser
 import psycopg2  as pg # Allen, run on server: sudo apt-get install python-psycopg2
 
