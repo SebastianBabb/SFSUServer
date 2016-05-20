@@ -9,8 +9,6 @@ from bs4 import BeautifulSoup
 
 import sys
 
-# 6543 = Schedule Number
-
 class Course(object):
     def __init__(self, subject, number, title, ext=None):
         self.subject = subject
@@ -20,6 +18,10 @@ class Course(object):
 
 class Section(object):
     def __init__(self, klass, number, section, time, room, instructor, date, description=False, term=None):
+        """
+            number - Course schedule number, 4-digit code
+            section - Section number, 1..n for n offerings of a class in a given semester
+        """
         self.klass = klass
         self.number = number
         self.section = section
@@ -35,21 +37,6 @@ class Section(object):
         else:
             return "UNKNOWN UNKNOWN-UNKNOWN {} by {}".format(self.number, self.instructor)
 
-class ResultsPage(object):
-    def __init__(self, soup):
-        self.soup = soup
-        self.classes = {}
-
-    def parse_class(self, element):
-        raise NotImplementedError()
-
-    def class_iter(self):
-        raise NotImplementedError()
-
-    def course_iter(self):
-        raise NotImplementedError()
-
-
 class ElementNotFoundError(ValueError): pass
 
 def select_one_text(soup, selector):
@@ -62,7 +49,6 @@ def select_one_text(soup, selector):
 import re
 
 course_info_regex = re.compile(r'Collapse section\s+((\w+\s+)*\w+)\s+(\d+)(\w*)\s+-\s+(\w.*\S)\s*$')
-#times = re.compile()
 section_number_regex = re.compile(r'^(\d+)\s*-')
 
 import datetime
@@ -76,7 +62,6 @@ def iter_courses(uri, soup, jar, opener, term):
     i = 0
     while True:
         try:
-            # TODO: retrieve class number/name
             schedule_number = int(select_one_text(soup, "#MTG_CLASS_NBR$" + str(i)))
 
             number_element = soup.select("#MTG_CLASS_NBR$" + str(i))[0]
@@ -118,7 +103,7 @@ def iter_courses(uri, soup, jar, opener, term):
                 section_number = int(match.group(1))
             except ValueError:
                 section_number = 0
-            
+
             request = form.from_form(soup, {"ICAction": "MTG_CLASS_NBR$" + str(i)})
 
             detail_soup = BeautifulSoup(opener.open(request))
@@ -128,14 +113,6 @@ def iter_courses(uri, soup, jar, opener, term):
             except IndexError:
                 description = ""
 
-            # XXX: ignoring result for now, maybe we only need to 
-            #return_form = StatefulQueryFactory(uri, jar)
-            #request = form.from_form(soup, {"ICAction", "CLASS_SRCH_WRK2_SSR_PB_BACK"})
-            
-            #_ = BeautifulSoup(opener.open(request))
-
-            #import pdb; pdb.set_trace()
-			
             if course is None:
                 print  >> sys.stderr, "ERROR", Section(course, schedule_number, section_number, time, room, instructor, date, description, term)
             else:
@@ -145,7 +122,7 @@ def iter_courses(uri, soup, jar, opener, term):
         except ElementNotFoundError:
             break
 
-from functools import wraps 
+from functools import wraps
 
 def iter_courses_for_term(term):
     @wraps(iter_courses)
@@ -265,8 +242,7 @@ class Database(object):
                 pass
 
             cursor.execute('INSERT INTO "Professors" (first_name, last_name) VALUES(%s, %s) RETURNING id;', (first_name, last_name))
-            #cursor.execute('SELECT LASTVAL()')
-            prof_id = cursor.fetchone()[0] #['lastval']
+            prof_id = cursor.fetchone()[0]
             self.professors[name] = prof_id
             return prof_id
 
@@ -298,7 +274,7 @@ if __name__ == "__main__":
     for subject in CourseQuery.subjects():
         form = {}
         form['SSR_CLSRCH_WRK_SESSION_CODE$0'] = '1'
-        form['SSR_CLSRCH_WRK_SUBJECT_SRCH$1'] = subject #'ACCT'
+        form['SSR_CLSRCH_WRK_SUBJECT_SRCH$1'] = subject # ex. 'ACCT'
         for klass in courses.query(form):
             db.insert_section(klass)
             print klass
